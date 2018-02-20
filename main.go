@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -13,7 +14,12 @@ import (
 type User struct {
 	ID       string `json:"id,omitempty"`
 	Email    string `json:"email,omitempty"`
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
+}
+
+//MyError ...
+type MyError struct {
+	Err string `json:"err"`
 }
 
 var users []User
@@ -22,23 +28,46 @@ func main() {
 
 	router := mux.NewRouter()
 
-	users = append(users, User{ID: "1", Email: "majidmokht@gmail.com"})
-	users = append(users, User{ID: "2", Email: "saeedmokht@gmail.com"})
+	users = append(users, User{ID: "1", Email: "m@m.com", Password: "abcd"})
+	users = append(users, User{ID: "2", Email: "s@s.com", Password: "abcd"})
 
-	router.HandleFunc("/users", GetAllUsers).Methods("GET")
-	router.HandleFunc("/users/{id}", GetUser).Methods("GET")
+	router.HandleFunc("/users", LoginUser).Methods("POST")
+	router.HandleFunc("/users/{id}", GetUserByID).Methods("GET")
 	router.HandleFunc("/users/{id}", CreateUser).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
 
-//GetAllUsers ...
-func GetAllUsers(w http.ResponseWriter, req *http.Request) {
-	json.NewEncoder(w).Encode(users)
+//LoginUser ...
+func LoginUser(w http.ResponseWriter, req *http.Request) {
+	body, error := ioutil.ReadAll(req.Body)
+	if error != nil {
+		fmt.Println(error)
+	}
+	user := make(map[string]string)
+	err := json.Unmarshal(body, &user)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, u := range users {
+		if u.Email == user["email"] && u.Password == user["password"] {
+			err := json.NewEncoder(w).Encode(user)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+	}
+	myError := MyError{}
+	myError.Err = "User not found"
+	e := json.NewEncoder(w).Encode(&myError)
+	if e != nil {
+		log.Fatal(err)
+	}
 }
 
-//GetUser ...
-func GetUser(w http.ResponseWriter, req *http.Request) {
+//GetUserByID ...
+func GetUserByID(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	for _, item := range users {
 		if item.ID == params["id"] {
