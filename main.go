@@ -31,9 +31,10 @@ func main() {
 	users = append(users, User{ID: "1", Email: "A", Password: "A"})
 	users = append(users, User{ID: "2", Email: "B", Password: "B"})
 
-	router.HandleFunc("/users", LoginUser).Methods("POST")
-	router.HandleFunc("/users/{id}", GetUserByID).Methods("GET")
-	router.HandleFunc("/users/{id}", CreateUser).Methods("POST")
+	router.HandleFunc("/user/login", LoginUser).Methods("POST")
+	router.HandleFunc("/user/signup", LoginUser).Methods("POST")
+	router.HandleFunc("/user/{id}", GetUserByID).Methods("GET")
+	router.HandleFunc("/user/{id}", CreateUser).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
@@ -59,7 +60,7 @@ func LoginUser(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	myError := MyError{}
-	myError.Err = "User not found"
+	myError.Err = "Email or password is incorrect!"
 	e := json.NewEncoder(w).Encode(&myError)
 	if e != nil {
 		log.Fatal(err)
