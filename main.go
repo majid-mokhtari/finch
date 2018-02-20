@@ -28,8 +28,8 @@ func main() {
 
 	router := mux.NewRouter()
 
-	users = append(users, User{ID: "1", Email: "m@m.com", Password: "abcd"})
-	users = append(users, User{ID: "2", Email: "s@s.com", Password: "abcd"})
+	users = append(users, User{ID: "1", Email: "A", Password: "A"})
+	users = append(users, User{ID: "2", Email: "B", Password: "B"})
 
 	router.HandleFunc("/users", LoginUser).Methods("POST")
 	router.HandleFunc("/users/{id}", GetUserByID).Methods("GET")
