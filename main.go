@@ -1,12 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
 
@@ -14,10 +16,11 @@ import (
 type User struct {
 	ID       string `json:"id,omitempty"`
 	Name     string `json:"name,omitempty"`
-	Location string `json:"location,omitempty"`
+	City     string `json:"city,omitempty"`
 	Birthday string `json:"birthday,omitempty"`
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
+	Active   bool   `json:"active,omitempty"`
 }
 
 //MyError ...
@@ -27,8 +30,11 @@ type MyError struct {
 
 var users []User
 
+var dataSourceName = "root:root@tcp(127.0.01:3306)/finch"
+
 func main() {
 
+	//Routes
 	router := mux.NewRouter()
 
 	users = append(users, User{ID: "1", Email: "A", Password: "A"})
@@ -39,6 +45,7 @@ func main() {
 	router.HandleFunc("/user/{id}", GetUserByID).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":8000", router))
+
 }
 
 //LoginUser ...
@@ -91,9 +98,24 @@ func SignupUser(w http.ResponseWriter, req *http.Request) {
 	//create new user type and add body to it
 	newUser := User{}
 	json.Unmarshal(body, &newUser)
-	users = append(users, newUser)
-	err := json.NewEncoder(w).Encode(users)
+
+	//DB connection
+	db, err := sql.Open("mysql", dataSourceName)
+	if err != nil {
+		log.Println(err)
+	}
+
+	//Query Statements
+	stmt, err := db.Prepare("insert into finch.users(name, email, password, birthday, city, active) values(?,?,?,?,?,?)")
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer stmt.Close()
+	_, errr := stmt.Exec(newUser.Name, newUser.Email, newUser.Password, newUser.Birthday, newUser.City, 1)
+	if errr != nil {
+		log.Fatal(errr)
+	}
+	//send back new user
+	json.NewEncoder(w).Encode(newUser)
+	defer db.Close()
 }
