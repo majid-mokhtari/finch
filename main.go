@@ -13,6 +13,9 @@ import (
 //User ...
 type User struct {
 	ID       string `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Location string `json:"location,omitempty"`
+	Birthday string `json:"birthday,omitempty"`
 	Email    string `json:"email,omitempty"`
 	Password string `json:"password,omitempty"`
 }
@@ -32,9 +35,8 @@ func main() {
 	users = append(users, User{ID: "2", Email: "B", Password: "B"})
 
 	router.HandleFunc("/user/login", LoginUser).Methods("POST")
-	router.HandleFunc("/user/signup", LoginUser).Methods("POST")
+	router.HandleFunc("/user/signup", SignupUser).Methods("POST")
 	router.HandleFunc("/user/{id}", GetUserByID).Methods("GET")
-	router.HandleFunc("/user/{id}", CreateUser).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
@@ -80,19 +82,18 @@ func GetUserByID(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(&User{})
 }
 
-//CreateUser ...
-func CreateUser(w http.ResponseWriter, req *http.Request) {
-	//get params from request
-	params := mux.Vars(req)
+//SignupUser ...
+func SignupUser(w http.ResponseWriter, req *http.Request) {
+	body, error := ioutil.ReadAll(req.Body)
+	if error != nil {
+		log.Fatal(error)
+	}
 	//create new user type and add body to it
-	user := User{}
-	user.ID = params["id"]
-	err := json.NewDecoder(req.Body).Decode(&user)
+	newUser := User{}
+	json.Unmarshal(body, &newUser)
+	users = append(users, newUser)
+	err := json.NewEncoder(w).Encode(users)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//add new user to the rest of users
-	users = append(users, user)
-	//send updated users back to browser
-	json.NewEncoder(w).Encode(users)
 }
