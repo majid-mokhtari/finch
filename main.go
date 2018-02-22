@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -14,13 +15,13 @@ import (
 
 //User ...
 type User struct {
-	ID       string `json:"id,omitempty"`
-	Name     string `json:"name,omitempty"`
-	City     string `json:"city,omitempty"`
-	Birthday string `json:"birthday,omitempty"`
-	Email    string `json:"email,omitempty"`
-	Password string `json:"password,omitempty"`
-	Active   bool   `json:"active,omitempty"`
+	ID       string    `json:"id,omitempty"`
+	Name     string    `json:"name,omitempty"`
+	City     string    `json:"city,omitempty"`
+	Birthday time.Time `json:"birthday,omitempty"`
+	Email    string    `json:"email,omitempty"`
+	Password string    `json:"password,omitempty"`
+	Active   bool      `json:"active,omitempty"`
 }
 
 //MyError ...
@@ -69,7 +70,7 @@ func LoginUser(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	myError := MyError{}
-	myError.Err = "Email or password is incorrect!"
+	myError.Err = "Incorrect email or password!"
 	e := json.NewEncoder(w).Encode(&myError)
 	if e != nil {
 		log.Fatal(err)
