@@ -3,43 +3,30 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 
+	"github.com/finch-app/finch/models"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
-
-//User ...
-type User struct {
-	ID       string    `json:"id,omitempty"`
-	Name     string    `json:"name,omitempty"`
-	City     string    `json:"city,omitempty"`
-	Birthday time.Time `json:"birthday,omitempty"`
-	Email    string    `json:"email,omitempty"`
-	Password string    `json:"password,omitempty"`
-	Active   bool      `json:"active,omitempty"`
-}
 
 //MyError ...
 type MyError struct {
 	Err string `json:"err"`
 }
 
-var users []User
+var dataSourceName = "root:root@tcp(127.0.01:3306)/finch?parseTime=true"
 
-var dataSourceName = "root:root@tcp(127.0.01:3306)/finch"
+var users []models.User
 
 func main() {
 
+	GetAllUsers()
+
 	//Routes
 	router := mux.NewRouter()
-
-	users = append(users, User{ID: "1", Email: "A", Password: "A"})
-	users = append(users, User{ID: "2", Email: "B", Password: "B"})
 
 	router.HandleFunc("/user/login", LoginUser).Methods("POST")
 	router.HandleFunc("/user/signup", SignupUser).Methods("POST")
@@ -49,11 +36,48 @@ func main() {
 
 }
 
+//GetAllUsers ...
+func GetAllUsers() {
+	//DB connection
+	db, err := sql.Open("mysql", dataSourceName)
+	if err != nil {
+		log.Println(err)
+	}
+
+	rows, errr := db.Query("select id,name,birthday,city,email,password,status from finch.users where active = 1")
+	if errr != nil {
+		log.Fatal(errr)
+	}
+
+	defer db.Close()
+
+	for rows.Next() {
+		user := models.User{}
+
+		var Birthday string
+
+		err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&Birthday,
+			&user.City,
+			&user.Email,
+			&user.Password,
+			&user.Status,
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		//user.Birthday = time.Parse("2006-01-02", Birthday)
+		users = append(users, user)
+	}
+}
+
 //LoginUser ...
 func LoginUser(w http.ResponseWriter, req *http.Request) {
 	body, error := ioutil.ReadAll(req.Body)
 	if error != nil {
-		fmt.Println(error)
+		log.Fatal(error)
 	}
 	user := make(map[string]string)
 	err := json.Unmarshal(body, &user)
@@ -82,12 +106,11 @@ func GetUserByID(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	for _, item := range users {
 		if item.ID == params["id"] {
-			fmt.Println(item)
 			json.NewEncoder(w).Encode(item)
 			return
 		}
 	}
-	json.NewEncoder(w).Encode(&User{})
+	json.NewEncoder(w).Encode(&models.User{})
 }
 
 //SignupUser ...
@@ -97,7 +120,7 @@ func SignupUser(w http.ResponseWriter, req *http.Request) {
 		log.Fatal(error)
 	}
 	//create new user type and add body to it
-	newUser := User{}
+	newUser := models.User{}
 	json.Unmarshal(body, &newUser)
 
 	//DB connection
