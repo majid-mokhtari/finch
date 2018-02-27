@@ -44,7 +44,7 @@ func GetAllUsers() {
 		log.Println(err)
 	}
 
-	rows, errr := db.Query("select id,name,birthday,city,email,password,status from finch.users where active = 1")
+	rows, errr := db.Query("select id,name,birthdate,city,email,password,status from finch.users where active = 1")
 	if errr != nil {
 		log.Fatal(errr)
 	}
@@ -54,12 +54,12 @@ func GetAllUsers() {
 	for rows.Next() {
 		user := models.User{}
 
-		var Birthday string
+		var Birthdate string
 
 		err := rows.Scan(
 			&user.ID,
 			&user.Name,
-			&Birthday,
+			&Birthdate,
 			&user.City,
 			&user.Email,
 			&user.Password,
@@ -130,12 +130,12 @@ func SignupUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	//Query Statements
-	stmt, err := db.Prepare("insert into finch.users(name, email, password, birthday, city, active) values(?,?,?,?,?,?)")
+	stmt, err := db.Prepare("insert into finch.users(name, email, password, gender, birthdate, city, status, active) values(?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
-	_, errr := stmt.Exec(newUser.Name, newUser.Email, newUser.Password, newUser.Birthday, newUser.City, 1)
+	_, errr := stmt.Exec(newUser.Name, newUser.Email, newUser.Password, newUser.Gender, newUser.Birthdate, newUser.City, newUser.Status, 1)
 	if errr != nil {
 		log.Fatal(errr)
 	}
