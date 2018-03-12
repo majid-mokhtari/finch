@@ -74,6 +74,7 @@ func GetAllUsers() []models.User {
 
 //LoginUser ...
 func LoginUser(w http.ResponseWriter, req *http.Request) {
+	//set cookie
 	users := GetAllUsers()
 	body, error := ioutil.ReadAll(req.Body)
 	if error != nil {
@@ -86,6 +87,16 @@ func LoginUser(w http.ResponseWriter, req *http.Request) {
 	}
 	for _, u := range users {
 		if u.Email == user["email"] && u.Password == user["password"] {
+			//set cookie
+			cookie, cookieErr := req.Cookie("FINCH-USER")
+			if cookieErr == http.ErrNoCookie {
+				cookie = &http.Cookie{
+					Name:  "FINCH-USER",
+					Value: "1",
+				}
+			}
+			//w.Header().Set("Authorization", cookie.Value)
+			http.SetCookie(w, cookie)
 			err := json.NewEncoder(w).Encode(user)
 			if err != nil {
 				log.Fatal(err)
