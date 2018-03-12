@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,12 +20,7 @@ type MyError struct {
 
 var dataSourceName = "root:root@tcp(127.0.01:3306)/finch?parseTime=true"
 
-var users []models.User
-
 func main() {
-
-	GetAllUsers()
-
 	//Routes
 	router := mux.NewRouter()
 
@@ -32,12 +28,14 @@ func main() {
 	router.HandleFunc("/user/signup", SignupUser).Methods("POST")
 	router.HandleFunc("/user/{id}", GetUserByID).Methods("GET")
 
+	fmt.Println("Server is running on port 8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
 
 }
 
 //GetAllUsers ...
-func GetAllUsers() {
+func GetAllUsers() []models.User {
+	var users []models.User
 	//DB connection
 	db, err := sql.Open("mysql", dataSourceName)
 	if err != nil {
@@ -71,10 +69,12 @@ func GetAllUsers() {
 		//user.Birthday = time.Parse("2006-01-02", Birthday)
 		users = append(users, user)
 	}
+	return users
 }
 
 //LoginUser ...
 func LoginUser(w http.ResponseWriter, req *http.Request) {
+	users := GetAllUsers()
 	body, error := ioutil.ReadAll(req.Body)
 	if error != nil {
 		log.Fatal(error)
@@ -103,6 +103,7 @@ func LoginUser(w http.ResponseWriter, req *http.Request) {
 
 //GetUserByID ...
 func GetUserByID(w http.ResponseWriter, req *http.Request) {
+	users := GetAllUsers()
 	params := mux.Vars(req)
 	for _, item := range users {
 		if item.ID == params["id"] {
