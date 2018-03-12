@@ -11,12 +11,16 @@ import (
 	"github.com/finch-app/finch/models"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/satori/go.uuid"
 )
 
 //MyError ...
 type MyError struct {
 	Err string `json:"err"`
 }
+
+var dbUsers = map[string]models.User{} // email, user
+var dbSessions = map[string]string{}   // session ID, email
 
 var dataSourceName = "root:root@tcp(127.0.01:3306)/finch?parseTime=true"
 
@@ -31,45 +35,6 @@ func main() {
 	fmt.Println("Server is running on port 8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
 
-}
-
-//GetAllUsers ...
-func GetAllUsers() []models.User {
-	var users []models.User
-	//DB connection
-	db, err := sql.Open("mysql", dataSourceName)
-	if err != nil {
-		log.Println(err)
-	}
-
-	rows, errr := db.Query("select id,name,birthdate,city,email,password,status from finch.users where active = 1")
-	if errr != nil {
-		log.Fatal(errr)
-	}
-
-	defer db.Close()
-
-	for rows.Next() {
-		user := models.User{}
-
-		var Birthdate string
-
-		err := rows.Scan(
-			&user.ID,
-			&user.Name,
-			&Birthdate,
-			&user.City,
-			&user.Email,
-			&user.Password,
-			&user.Status,
-		)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		//user.Birthday = time.Parse("2006-01-02", Birthday)
-		users = append(users, user)
-	}
-	return users
 }
 
 //LoginUser ...
@@ -87,21 +52,26 @@ func LoginUser(w http.ResponseWriter, req *http.Request) {
 	}
 	for _, u := range users {
 		if u.Email == user["email"] && u.Password == user["password"] {
+
 			//set cookie
 			cookie, cookieErr := req.Cookie("FINCH-USER")
 			if cookieErr == http.ErrNoCookie {
+				uid := uuid.NewV4()
+				fmt.Println(uid.String())
 				cookie = &http.Cookie{
-					Name:  "FINCH-USER",
-					Value: "1",
+					Name:     "FINCH-USER",
+					Value:    uid.String(),
+					HttpOnly: true,
 				}
+				http.SetCookie(w, cookie)
 			}
-			//w.Header().Set("Authorization", cookie.Value)
-			http.SetCookie(w, cookie)
+
 			err := json.NewEncoder(w).Encode(user)
 			if err != nil {
 				log.Fatal(err)
 			}
 			return
+
 		}
 	}
 	myError := MyError{}
@@ -154,4 +124,43 @@ func SignupUser(w http.ResponseWriter, req *http.Request) {
 	//send back new user
 	json.NewEncoder(w).Encode(newUser)
 	defer db.Close()
+}
+
+//GetAllUsers ...
+func GetAllUsers() []models.User {
+	var users []models.User
+	//DB connection
+	db, err := sql.Open("mysql", dataSourceName)
+	if err != nil {
+		log.Println(err)
+	}
+
+	rows, errr := db.Query("select id,name,birthdate,city,email,password,status from finch.users where active = 1")
+	if errr != nil {
+		log.Fatal(errr)
+	}
+
+	defer db.Close()
+
+	for rows.Next() {
+		user := models.User{}
+
+		var Birthdate string
+
+		err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&Birthdate,
+			&user.City,
+			&user.Email,
+			&user.Password,
+			&user.Status,
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		//user.Birthday = time.Parse("2006-01-02", Birthday)
+		users = append(users, user)
+	}
+	return users
 }
