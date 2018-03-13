@@ -28,6 +28,7 @@ func main() {
 	//Routes
 	router := mux.NewRouter()
 
+	router.HandleFunc("/auth", IndexFun).Methods("GET")
 	router.HandleFunc("/user/login", LoginUser).Methods("POST")
 	router.HandleFunc("/user/signup", SignupUser).Methods("POST")
 	router.HandleFunc("/user/{id}", GetUserByID).Methods("GET")
@@ -37,10 +38,27 @@ func main() {
 
 }
 
+// IndexFun ...
+func IndexFun(w http.ResponseWriter, req *http.Request) {
+	//set cookie
+	cookie, cookieErr := req.Cookie("FINCH-USER")
+	if cookieErr == http.ErrNoCookie {
+		//fmt.Println(cookieErr, cookie.String())
+		// uid := uuid.NewV4()
+		// cookie = &http.Cookie{
+		// 	Name:     "FINCH-USER",
+		// 	Value:    uid.String(),
+		// 	HttpOnly: true,
+		// }
+	}
+	fmt.Println(cookieErr, cookie.String())
+}
+
 //LoginUser ...
 func LoginUser(w http.ResponseWriter, req *http.Request) {
-	//set cookie
+
 	users := GetAllUsers()
+
 	body, error := ioutil.ReadAll(req.Body)
 	if error != nil {
 		log.Fatal(error)
@@ -50,6 +68,7 @@ func LoginUser(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	for _, u := range users {
 		if u.Email == user["email"] && u.Password == user["password"] {
 
@@ -57,15 +76,13 @@ func LoginUser(w http.ResponseWriter, req *http.Request) {
 			cookie, cookieErr := req.Cookie("FINCH-USER")
 			if cookieErr == http.ErrNoCookie {
 				uid := uuid.NewV4()
-				fmt.Println(uid.String())
 				cookie = &http.Cookie{
 					Name:     "FINCH-USER",
 					Value:    uid.String(),
 					HttpOnly: true,
 				}
-				http.SetCookie(w, cookie)
 			}
-
+			http.SetCookie(w, cookie)
 			err := json.NewEncoder(w).Encode(user)
 			if err != nil {
 				log.Fatal(err)
